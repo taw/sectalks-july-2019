@@ -1,0 +1,26 @@
+#!/usr/bin/env ruby
+
+require "pathname"
+
+flag = Pathname("flag.txt").read.chomp
+
+top = []
+bottom = []
+
+flag.bytes.each do |c|
+  t = c / 20
+  b = c % 20
+  top << 0x1D2E0 + t
+  bottom << 0x1D2E0 + b
+end
+
+nums = top.pack("U*") + "\n" + bottom.pack("U*")
+
+puts %Q[<svg width="600" height="50" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <style>svg { background-color: #E5A4CB; }</style>
+  <rect width="100%" height="100%" fill="#E5A4CB"/>
+  <g style="font-family: BabelStoneMayanNumerals; color: #E5A4CB">
+  <text x="50" y="15" fill="red">#{top.pack("U*")}</text>
+  <text x="50" y="35" fill="red">#{bottom.pack("U*")}</text>
+</g>
+</svg>]
