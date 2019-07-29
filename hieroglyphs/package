@@ -1,0 +1,34 @@
+#!/usr/bin/env ruby
+
+require "pathname"
+data = Pathname("output.txt").read
+data = data.chars.each_slice(40).map(&:join).join("\n")
+
+output = %Q[<!DOCTYPE html>
+<html>
+  <head>
+    <title>Secret Message</title>
+    <style>
+      /*
+      * Noto Sans Egyptian Hieroglyphs (Egyptian Hieroglyphs) http://www.google.com/fonts/earlyaccess
+      */
+      @font-face {
+        font-family: 'Noto Sans Egyptian Hieroglyphs';
+        font-style: normal;
+        font-weight: 400;
+        src: url(http://fonts.gstatic.com/ea/notosansegyptianhieroglyphs/v1/NotoSansEgyptianHieroglyphs-Regular.eot);
+        src: url(http://fonts.gstatic.com/ea/notosansegyptianhieroglyphs/v1/NotoSansEgyptianHieroglyphs-Regular.eot?#iefix) format('embedded-opentype'),
+            url(http://fonts.gstatic.com/ea/notosansegyptianhieroglyphs/v1/NotoSansEgyptianHieroglyphs-Regular.woff2) format('woff2'),
+            url(http://fonts.gstatic.com/ea/notosansegyptianhieroglyphs/v1/NotoSansEgyptianHieroglyphs-Regular.woff) format('woff'),
+            url(http://fonts.gstatic.com/ea/notosansegyptianhieroglyphs/v1/NotoSansEgyptianHieroglyphs-Regular.ttf) format('truetype');
+      }
+      pre{ font-family: 'Noto Sans Egyptian Hieroglyphs', sans-serif; }</style>
+  </head>
+  <body>
+    <pre>#{data}</pre>
+  </body>
+</html>]
+
+Pathname("output.html").open("w") do |fh|
+  fh.puts output
+end

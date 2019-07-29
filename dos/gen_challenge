@@ -1,0 +1,66 @@
+#!/usr/bin/env ruby
+
+require "pathname"
+flag = Pathname("flag.txt").read.chomp
+
+counter = rand(2**16)
+
+header = %Q[
+org 100h
+
+section .text
+
+start:
+  mov   ah,9
+  lea   dx, [enter_flag]
+  int   21h
+
+verify:
+  mov bx, #{counter}
+  mov ah, 1
+
+]
+
+footer = %Q[
+correct:
+  lea dx, [correct_text]
+  jmp done
+
+incorrect:
+  lea dx, [incorrect_text]
+  jmp done
+
+done:
+  mov   ah,9
+  int   21h
+  mov   ax,4c00h
+  int   21h
+
+section .data
+
+  enter_flag      db "Enter flag:", 13, 10, "$"
+  correct_text    db 13, 10, "Correct!", 13, 10, "$"
+  incorrect_text  db 13, 10, "Wrong!", 13, 10, "$"
+
+section .bss
+  ; put uninitialized data here
+]
+
+verify = []
+
+expected_bx = counter
+flag.each_char do |c|
+  expected_ax = 0x100 + c.ord
+  expected_bx = (expected_bx + expected_ax) & 0xFFFF
+
+  verify << %Q[
+  int 21h
+  add bx, ax
+  cmp bx, #{expected_bx}
+  jne incorrect
+]
+end
+
+open("verify.asm", "w") do |fh|
+  fh.puts header, verify.join("\n"), footer
+end

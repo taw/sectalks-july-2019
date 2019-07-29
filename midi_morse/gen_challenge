@@ -1,0 +1,56 @@
+#!/usr/bin/env ruby
+
+require "pry"
+require "morse"
+require "pathname"
+require "midilib/sequence"
+require "midilib/consts"
+
+flag = Pathname("flag.txt").read.chomp
+
+flag = flag.gsub(/[^a-z]/, "")
+
+morse_flag = Morse.encode(flag)
+
+seq = MIDI::Sequence.new
+
+track = MIDI::Track.new(seq)
+seq.tracks << track
+track.events << MIDI::Tempo.new(MIDI::Tempo.bpm_to_mpq(160))
+
+track.instrument = "Ocarina"
+track.name = 'Morse Ocarina'
+
+# puts *MIDI::GM_PATCH_NAMES
+
+# Add a volume controller event (optional).
+track.events << MIDI::Controller.new(0, MIDI::CC_VOLUME, 127)
+
+instrument = MIDI::GM_PATCH_NAMES.index("Ocarina")
+track.events << MIDI::ProgramChange.new(0, instrument, 0)
+quarter_note_length = seq.note_to_delta('quarter')
+
+offset = 0
+puts morse_flag
+
+notes = [0, 2, 4, 5, 7, 9, 11, 12].map{|i| i + 64}.cycle
+
+morse_flag.chars.each do |c|
+  note = notes.next
+  case c
+  when '.'
+    track.events << MIDI::NoteOn.new(0, note, 127, offset)
+    track.events << MIDI::NoteOff.new(0, note, 127, quarter_note_length / 2)
+    offset = 0
+  when '-'
+    track.events << MIDI::NoteOn.new(0, note, 127, offset)
+    track.events << MIDI::NoteOff.new(0, note, 127, quarter_note_length * 4)
+    offset = 0
+  when ' '
+    offset = quarter_note_length * 4
+  else
+    binding.pry
+  end
+end
+
+Pathname("ocarina.mid").open("wb") { |file| seq.write(file) }
