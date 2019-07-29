@@ -1,0 +1,17 @@
+#!/usr/bin/env ruby
+
+require "prime"
+require "pry"
+
+num = ARGV[0].to_i
+
+primes = []
+max = 1
+Prime.each do |pi|
+  next if pi < 1000
+  primes << pi
+  max *= pi
+  break if max > num
+end
+
+p primes.map{|u| [u, num % u]}.flatten
