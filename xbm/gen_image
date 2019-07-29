@@ -1,0 +1,18 @@
+#!/usr/bin/env ruby
+
+require "pathname"
+
+flag = open("flag.txt", &:read).chomp
+
+system *%W[
+  convert
+    +antialias
+    -size 600x80
+    -background black
+    -font Verdana
+    -pointsize 32
+    -fill white
+    -gravity Center
+    #{"caption:#{flag}"}
+    -flatten secret_message.xbm
+]

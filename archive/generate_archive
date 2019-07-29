@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+require "pathname"
+
+def create_zip(files)
+  system "trash", "tmp" if Pathname("tmp").exist?
+  Pathname("tmp").mkpath
+  files.each do |name, content|
+    Pathname("tmp/#{name}").write(content)
+  end
+  Dir.chdir("tmp") do
+    system "gshar --no-i18n -q -m -C gzip -g 9 *#{files.keys.join(" ")} >output.shar"
+  end
+  Pathname("tmp/output.shar").open("rb", &:read)
+end
+
+def generate_archive(real, fake)
+  real += "\n" * (64 - real.size)
+  fake += "\n" * (64 - fake.size)
+
+  expanded = 64
+
+  8.times do |j|
+    extname = j == 0 ? "txt" : "shar"
+    real_files = (0..15).map{|i| "%d-%x.#{extname}" % [j,i]}.zip(([real] + [fake] * 15).shuffle).to_h
+    fake_files = (0..15).map{|i| "%d-%x.#{extname}" % [j,i]}.zip([fake] * 16).to_h
+    real = create_zip(real_files)
+    fake = create_zip(fake_files)
+    max_size = [real.size, fake.size].max
+    # real += "\n" * (max_size - real.size)
+    # fake += "\n" * (max_size - fake.size)
+    expanded *= 16
+  end
+
+  open("archive.shar", "wb") do |fh|
+    fh.write real
+  end
+
+  puts "Expanded size: #{expanded}"
+  puts "Compressed size: #{real.size}"
+  puts "Ratio: #{expanded / real.size}"
+end
+
+flag = Pathname("flag.txt").read.chomp
+
+generate_archive(flag, "There is no answer here :-(")

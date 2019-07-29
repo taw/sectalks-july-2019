@@ -1,0 +1,82 @@
+#!/usr/bin/env ruby
+
+require "openssl"
+require "socket"
+require "pathname"
+
+class String
+  def to_hexes
+    bytes.map{|u| "%02x" % u}.join
+  end
+
+  def from_hexes
+    scan(/../).map{|u| u.to_i(16)}.pack("C*")
+  end
+end
+
+def admin?(msg)
+  msg.include?("admin=yes")
+end
+
+def encrypt(msg)
+  signature = OpenSSL::Digest::MD4.hexdigest(@key + msg)
+  signature + msg.to_hexes
+end
+
+def decode_cookie(cookie)
+  signature = cookie[0, 32]
+  msg = cookie[32..-1]
+  [signature, msg.from_hexes]
+end
+
+def client_session(client)
+  client.puts "Welcome to the encryption server"
+  client.puts "Commands available:"
+  client.puts "* encrypt - generate a signed cookie"
+  client.puts "* login - login with signed cookie"
+
+  cmd = client.gets.chomp
+  case cmd
+  when "encrypt"
+    client.puts "Enter cookie content to sign:"
+    msg = client.gets.chomp
+    if admin?(msg)
+      client.puts "Admin cookie attempted, but you're not admin"
+    else
+      cookie = encrypt(msg)
+      client.puts "Cookie: #{cookie}"
+    end
+
+  when "login"
+    client.puts "Enter encrypted cookie:"
+    cookie = client.gets.chomp
+    signature, msg = decode_cookie(cookie)
+    client.puts "Received cookie: #{msg}"
+    if encrypt(msg) != cookie
+      client.puts "Invalid signature in cookie"
+    elsif admin?(msg)
+      client.puts "Login successful"
+      client.puts "Flag: #{ @flag }"
+    else
+      client.puts "Login failed"
+    end
+  else
+    client.puts "Unrecognized command: #{cmd}"
+  end
+
+  client.puts "Goodbye!"
+end
+
+@flag = Pathname("flag.txt").read.chomp
+@key = Random::DEFAULT.bytes(32)
+
+server = TCPServer.open(9002)
+loop do
+  Thread.fork(server.accept) do |client|
+    begin
+      client_session(client)
+    ensure
+      client.close
+    end
+  end
+end

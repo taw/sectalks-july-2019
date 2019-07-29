@@ -1,0 +1,37 @@
+#!/usr/bin/env ruby
+
+require "pathname"
+
+flag = open("flag.txt", &:read).chomp
+
+system *%W[
+  convert
+    +antialias
+    -size 800x240
+    -background #123456
+    -font Verdana
+    -pointsize 32
+    -fill #789abc
+    -gravity Center
+    #{"caption:#{flag}"}
+    -flatten secret_message.pcx
+]
+
+system "convert -colors 16 -depth 8 secret_message.pcx secret_message2.pcx"
+
+data = Pathname("secret_message2.pcx").open("rb", &:read)
+
+pa = [0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc].pack("C*")
+pb = [0x53, 0x72, 0xed, 0x53, 0x72, 0xed].pack("C*")
+i1 = 16
+i2 = 10038
+
+raise unless data[i1,6] == pa
+raise unless data[i2,6] == pa
+
+data[i1,6] = pb
+data[i2,6] = pb
+
+Pathname("secret_message3.pcx").open("wb"){|fh| fh.write(data)}
+
+system "trash secret_message.pcx secret_message2.pcx"

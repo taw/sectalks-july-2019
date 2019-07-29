@@ -1,0 +1,36 @@
+#!/usr/bin/env ruby
+
+require "pathname"
+
+flag = Pathname("flag.txt").read.chomp
+
+script = []
+
+# First kill it if it's wrong size
+
+script << "s/.#{"." * flag.size}/XXX/"
+flag.size.times{
+  script << "s/$/X/"
+}
+script << "s/\\(#{"." * flag.size}\\)\\(.*\\)/\\1/"
+
+until flag.empty?
+  i = rand(flag.size)
+  a = flag[0...i]
+  b = flag[i]
+  # b = "\\#{b}" if b == "}" or b == "{"
+  c = flag[i+1..-1]
+  script << "s/\\(#{"." * a.size}\\)#{b}\\(#{"." * c.size}\\)/\\2\\1/"
+  flag = c+a
+end
+
+script << "s/..*/Wrong!/"
+script << "s/^$/Correct!/"
+
+script = script.join("\n").gsub(/^(.{,120})$/m) { $&.tr("\n",";") }
+
+open("validator.sed", "w") do |fh|
+  fh.puts "#!/usr/bin/sed -f"
+  fh.puts script
+end
+system "chmod +x validator.sed"
